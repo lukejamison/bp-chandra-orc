@@ -20,13 +20,21 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Docker Compose not found. Please install Docker Compose first.${NC}"
+# Check if Docker Compose is installed (try both old and new syntax)
+DOCKER_COMPOSE_CMD=""
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+    echo -e "${GREEN}✅ Docker and Docker Compose found${NC}"
+elif docker compose version &> /dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+    echo -e "${GREEN}✅ Docker found (using 'docker compose' plugin)${NC}"
+else
+    echo -e "${YELLOW}⚠️  Docker Compose not found.${NC}"
+    echo "Please install Docker Compose with:"
+    echo "  sudo apt install docker-compose -y"
+    echo "Or use Docker's built-in compose plugin."
     exit 1
 fi
-
-echo -e "${GREEN}✅ Docker found${NC}"
 echo ""
 
 # Create .env file if it doesn't exist
@@ -58,17 +66,17 @@ fi
 
 # Stop any running containers
 echo -e "${BLUE}🛑 Stopping existing containers...${NC}"
-docker-compose down 2>/dev/null || true
+$DOCKER_COMPOSE_CMD down 2>/dev/null || true
 echo ""
 
 # Build and start containers
 echo -e "${BLUE}🔨 Building Docker images (this may take 10-15 minutes)...${NC}"
 echo -e "${YELLOW}   Note: The Python backend is large (~4-5 GB) due to ML dependencies${NC}"
-docker-compose build --no-cache
+$DOCKER_COMPOSE_CMD build --no-cache
 
 echo ""
 echo -e "${BLUE}🚀 Starting services...${NC}"
-docker-compose up -d
+$DOCKER_COMPOSE_CMD up -d
 
 echo ""
 echo -e "${GREEN}✅ Deployment complete!${NC}"
@@ -81,12 +89,12 @@ echo -e "  📚 API Docs:         ${BLUE}http://localhost:8000/docs${NC}"
 echo -e "  🔴 Redis:            ${BLUE}localhost:6379${NC}"
 echo ""
 echo -e "${YELLOW}📊 View logs:${NC}"
-echo "  docker-compose logs -f"
+echo "  $DOCKER_COMPOSE_CMD logs -f"
 echo ""
 echo -e "${YELLOW}🛑 Stop services:${NC}"
-echo "  docker-compose down"
+echo "  $DOCKER_COMPOSE_CMD down"
 echo ""
 echo -e "${YELLOW}♻️  Restart services:${NC}"
-echo "  docker-compose restart"
+echo "  $DOCKER_COMPOSE_CMD restart"
 echo ""
 
