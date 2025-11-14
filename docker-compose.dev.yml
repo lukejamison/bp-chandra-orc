@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    container_name: chandra-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    command: redis-server --appendonly yes
+    networks:
+      - chandra-network-dev
+
+  # Python Backend API (Development)
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    container_name: chandra-python-api-dev
+    ports:
+      - "8001:8001"
+    env_file:
+      - python-backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # Mount source code for hot reload
+      - ./python-backend/app:/app/app
+      - ./python-backend/uploads:/app/uploads
+      - ./python-backend/outputs:/app/outputs
+      - ./python-backend/logs:/app/logs
+    depends_on:
+      - redis
+    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    networks:
+      - chandra-network-dev
+
+  # Next.js Frontend (Development)
+  nextjs:
+    image: node:20-alpine
+    container_name: chandra-nextjs-dev
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PYTHON_API_URL=http://python-api:8001
+      - PYTHON_API_KEY=${PYTHON_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - python-api
+    networks:
+      - chandra-network-dev
+
+volumes:
+  redis_data_dev:
+
+networks:
+  chandra-network-dev:
+    driver: bridge
+

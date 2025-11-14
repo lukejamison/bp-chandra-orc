@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.markdown-content {
+  @apply prose prose-slate max-w-none;
+}
+
+.markdown-content h1 {
+  @apply text-3xl font-bold mt-6 mb-4;
+}
+
+.markdown-content h2 {
+  @apply text-2xl font-bold mt-5 mb-3;
+}
+
+.markdown-content h3 {
+  @apply text-xl font-semibold mt-4 mb-2;
+}
+
+.markdown-content p {
+  @apply mb-4;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply mb-4 ml-6;
+}
+
+.markdown-content code {
+  @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm;
+}
+
+.markdown-content pre {
+  @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4;
+}
+
+.markdown-content table {
+  @apply w-full border-collapse mb-4;
+}
+
+.markdown-content th,
+.markdown-content td {
+  @apply border border-gray-300 dark:border-gray-700 px-4 py-2;
+}
+
+.markdown-content th {
+  @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+}
+

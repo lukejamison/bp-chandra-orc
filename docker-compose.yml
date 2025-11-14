@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    container_name: chandra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - chandra-network
+
+  # Python Backend API
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    container_name: chandra-python-api
+    ports:
+      - "8001:8001"
+    env_file:
+      - python-backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+    volumes:
+      - ./python-backend/app:/app/app
+      - python_uploads:/app/uploads
+      - python_outputs:/app/outputs
+      - python_logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chandra-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Next.js Frontend
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    container_name: chandra-nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PYTHON_API_URL=http://python-api:8001
+      - PYTHON_API_KEY=${PYTHON_API_KEY}
+    depends_on:
+      - python-api
+    networks:
+      - chandra-network
+
+volumes:
+  redis_data:
+  python_uploads:
+  python_outputs:
+  python_logs:
+
+networks:
+  chandra-network:
+    driver: bridge
+
